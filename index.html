@@ -32,8 +32,22 @@
     <div id="main_content_wrap" class="outer">
       <section id="main_content" class="inner">
         <h3>
-<a name="welcome-to-github-pages" class="anchor" href="#welcome-to-github-pages"><span class="octicon octicon-link"></span></a>Welcome to GitHub Pages.</h3>
+<a name="intro-section" class="anchor" href="#intro-section"><span class="octicon octicon-link"></span></a>Introduction</h3>
 
+<p>This project involves a joint collaboration between the Computer Science Department at California Polytechnic State University in San Luis Obispo and the Intel Corporation. Our project's collaborator from Intel Corp. provided the primary focus and objectives for this project which involves the use of basic web cameras to detect the gesture of throwing virtual objects on a computer. This focus requires the use of computer vision software in attempts to detect the generalized gestures of throwing.</p>
+
+<a name="overview-section" class="anchor" href="#overview-section"><span class="octicon octicon-link"></span></a>Project Overview</h3>
+
+<p>This project is a continuation form the <em>CSC 484 - Human Computer Interface</em> course offered the previous quarter. At which time, the project vision and scope were identified as utilizing a basic web camera in conjunction with the Java implementation of OpenCV, Open source Computer Vision library, to detect the essential hand gestures required for detecting a user’s throwing action. This action of throwing consists of the more general capability to accurately detect the gestures of open and closed hands. Once these two primary gestures can be accurately detected and traced, the application will map them to the mouse input device.</p>
+
+<p>The gesture interface application will continue as the primary demonstration and testing platform of any future detection methods. Some reworking is required to allow for these other methods of gesture detection rather than only utilizing classifiers.</p>
+
+<p>Based on the results from the previous quarters work, using Haar-like cascading classifiers proved unreliable for detecting open and closed hands. This contributed to the redirection of move active analysis and coding on our application side to test using skin tone detection, contour subtraction, and convexity defect detection, with the possibility of combining all of these techniques with classifiers for open and closed hands.</p>
+
+
+<hr />
+
+<a name="welcome-to-github-pages" class="anchor" href="#welcome-to-github-pages"><span class="octicon octicon-link"></span></a>Welcome to GitHub Pages.</h3>
 <p>This automatic page generator is the easiest way to create beautiful pages for all of your projects. Author your page content here using GitHub Flavored Markdown, select a template crafted by a designer, and publish. After your page is generated, you can check out the new branch:</p>
 
 <pre><code>$ cd your_repo_root/repo_name
@@ -68,7 +82,11 @@ $ git checkout gh-pages
     <!-- FOOTER  -->
     <div id="footer_wrap" class="outer">
       <footer class="inner">
-        <p class="copyright">Hand-to-mouse maintained by <a href="https://github.com/cnhartley">cnhartley</a></p>
+        <p class="copyright">Hand-to-mouse maintained by 
+          <a href="https://github.com/cnhartley">Christopher N. Hartley</a>,
+          <a href="https://github.com/?">Adin Miller</a>, and
+          <a href="https://github.com/?">Haikal Saliba</a>
+        </p>
         <p>Published with <a href="http://pages.github.com">GitHub Pages</a></p>
       </footer>
     </div>
