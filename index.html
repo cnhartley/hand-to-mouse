@@ -44,6 +44,22 @@
 
 <p>Based on the results from the previous quarters work, using Haar-like cascading classifiers proved unreliable for detecting open and closed hands. This contributed to the redirection of move active analysis and coding on our application side to test using skin tone detection, contour subtraction, and convexity defect detection, with the possibility of combining all of these techniques with classifiers for open and closed hands.</p>
 
+<h3><a name="features-overview-section" class="anchor" href="#features-overview-section"><span class="octicon octicon-link"></span></a>Features</h3>
+
+<p>For the end user of this application concept, this project entails the detection of their hand gestures and mapping them to interact with their computer system. These primary features include:</p>
+
+<dl>
+  <dt>Hand Gesture Detection</dt>
+    <dd>The ability to accurately detect an open or closed hand from the user’s web camera.</dd>
+  <dt>Drag-and-Drop</dt>
+    <dd>The drag-and-drop functionality based on the hand gesture detection (Feature 1) which also enables mapping of the hand gestures to the mouse input device.</dd>
+  <dt>Throw Gesture Detection</dt>
+    <dd>Implementation of the throw gesture relies on trajectory data computed from the drag and drop functionality (Feature 2). Thus, if an object on screen was dragged and let go with a velocity over some defined threshold, the object would then be thrown.
+<p><em><color="red">Note:</color> At this time, the specifics of what the thrown object would do are not defined.</em></p></dd>
+  <dt>Gesture Interface Application</dt>
+    <dd>The system tray application allows the user to utilize their own hands as the input device to interact with their computers. This application runs as a background system tray application on most platforms and provides the ability to turn on or off the mouse overrides. This software provides both the testing environment and the demonstration application of the other features.</dd>
+</dl>
+
 
 <hr />
 
