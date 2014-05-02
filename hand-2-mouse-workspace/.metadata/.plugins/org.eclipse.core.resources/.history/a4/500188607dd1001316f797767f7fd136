@@ -1,0 +1,235 @@
+package gestures;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import org.opencv.core.Core;
+import org.opencv.core.Mat;
+import org.opencv.core.MatOfInt;
+import org.opencv.core.MatOfInt4;
+import org.opencv.core.MatOfPoint;
+import org.opencv.core.MatOfPoint2f;
+import org.opencv.core.Point;
+import org.opencv.core.RotatedRect;
+import org.opencv.core.Scalar;
+import org.opencv.imgproc.Imgproc;
+
+import project.recognition.AbstractGesture;
+import project.util.logger.Log;
+
+public class HandRecognizer extends AbstractGesture {
+
+	/*private class NullContourException extends Exception {
+		public NullContourException() { super(); }
+		public NullContourException(String message) { super(message); }
+		public NullContourException(String message, Throwable cause) { super(message, cause); }
+		public NullContourException(Throwable cause) { super(cause); }
+	}*/
+	
+	
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = -4630440503905990319L;
+	
+	private static final Scalar ycrcbMin = new Scalar(0, 131, 80);
+	private static final Scalar ycrcbMax = new Scalar(255, 185, 135);
+	private static final boolean showSkinImg = false;
+	
+	private MatOfInt hull = new MatOfInt();
+	private ArrayList<Point> filteredHull = new ArrayList<Point>();
+	private RotatedRect enclosingRect = new RotatedRect();
+	private MatOfInt4 defects = new MatOfInt4();
+	/*
+	MatOfInt4 defects structure
+	   Integer start; // Index of point of the contour where the defect begins
+	   Integer end; // Index of point of the contour where the defect ends
+	   Integer depth_point; // Index of the farthest from the convex hull point within the defect
+	   Integer depth; // Distance between the farthest point and the convex hull
+	*/
+	private int[] defectsArray = {};
+	MatOfPoint biggestContour = null;
+
+	
+	public HandRecognizer(String name) {
+		super(name);
+		// TODO Auto-generated constructor stub
+	}
+	
+	
+	public HandRecognizer(String name, boolean enabled) {
+		super(name, enabled);
+		// TODO Auto-generated constructor stub
+	}
+	
+	
+	public HandRecognizer(String name, String desc) {
+		super(name, desc, true);
+		// TODO Auto-generated constructor stub
+	}
+	
+	
+	public HandRecognizer(String name, String desc, boolean enabled) {
+		super(name, desc, enabled);
+		// TODO Auto-generated constructor stub
+	}
+
+	
+	@Override
+	public void detect(Mat matrix) {
+		boolean contourFound = false;
+		
+		// Detects skin pixels in the given Mat (image)
+		Mat skinImg = YCrCbSkinDetector.detectSkin(matrix, ycrcbMin, ycrcbMax);
+		
+		if(showSkinImg)
+			skinImg.copyTo(matrix);
+		else {
+			contourFound = extractContourAndHull(matrix, skinImg);
+			
+			if(contourFound)
+				detectAndCountFingers(matrix);
+			
+		}
+	}
+	
+	
+	/**
+	 * Obtains the contour and contour hull of the given image
+	 * 
+	 * @param origImg RGB-colored frame from camera feed
+	 * @param skinImg Grayscale image of object
+	 * @throws NullContourException 
+	 * @return Boolean indicating if contour was found or not
+	 */
+	private boolean extractContourAndHull(Mat origImg, Mat skinImg) {
+		List<MatOfPoint> contours = new ArrayList<>();
+		MatOfPoint2f currentContour = new MatOfPoint2f();
+		//Point[] vertices = {};
+		
+		// Obtains the contours in the binary skin image
+		Imgproc.findContours(skinImg, contours, new Mat(), Imgproc.RETR_LIST, Imgproc.CHAIN_APPROX_SIMPLE);
+		
+		// Obtains the biggest contour from the found contours
+		double biggestArea = 0;
+		for(int i = 0; i < contours.size(); i++) {
+			double curArea = Imgproc.contourArea(contours.get(i));
+			
+			if(curArea > biggestArea) {
+				biggestArea = curArea;
+				biggestContour = contours.get(i);
+			}
+		}
+		
+		// If a biggest contour wasn't found
+		if(biggestContour == null) {
+			return false;
+		}
+		
+		MatOfPoint2f contourCpy = new MatOfPoint2f(biggestContour.toArray());
+		
+		// Approximates the biggest contour
+		Imgproc.approxPolyDP(contourCpy, currentContour, Imgproc.arcLength(contourCpy, true) * 0.0025, true);
+		
+		// Draws the approximated contour using green-colored lines
+		List<MatOfPoint> tempContourList = new ArrayList<>();
+		tempContourList.add(new MatOfPoint(currentContour.toArray()));
+		Imgproc.drawContours(origImg, tempContourList, -1, new Scalar(0, 255, 0));
+		biggestContour = new MatOfPoint(currentContour.toArray());
+		
+		
+		// Obtains the smallest convex set that contains the biggest counter
+		Imgproc.convexHull(biggestContour, hull, true);
+		
+		// Obtains the rectangle with the smallest area that encloses the biggest contour
+		enclosingRect = Imgproc.minAreaRect(new MatOfPoint2f(biggestContour.toArray()));
+		
+		// Obtains the vertices of the enclosing rectangle
+		//enclosingRect.points(vertices);
+		
+		// Converts the hull points from integers to Points
+		ArrayList<Point> hullPtsList = new ArrayList<Point>();
+		int[] indices = hull.toArray();
+		Point[] contourPts = biggestContour.toArray();
+		for(int i = 0/*, j = 0*/; i < indices.length/* - 1*/; i++/*, j+=2*/) {
+			hullPtsList.add(contourPts[indices[i]]);
+			//hullPts[i] = new Point(indices[j], indices[j+1]);
+		}
+		
+		Point[] hullPts = new Point[hullPtsList.size()];
+		for(int i = 0; i < hullPtsList.size(); i++) {
+			hullPts[i] = hullPtsList.get(i);
+		}
+		
+		ArrayList<MatOfPoint> hullContour = new ArrayList<MatOfPoint>();
+		hullContour.add(new MatOfPoint(hullPts));
+		
+		// Draws a blue line outlining the convex set
+		Imgproc.drawContours(origImg, hullContour, -1, new Scalar(200, 125, 75));
+		/*for(int i = 0; i < hullPts.length - 1; i++) {
+			Core.line(origImg, hullPts[i], hullPts[i+1], new Scalar(200, 125, 75), 2);
+		}*/
+		
+		// Draws a blue circle at the center of the enclosing rectangle
+		Core.circle(origImg, new Point(enclosingRect.center.x, enclosingRect.center.y), 3, new Scalar(200, 125, 75), 2);
+		
+		// For each point in the smallest convex set that contains the biggest contour
+		for(int i = 0; i < hullPts.length - 1; i++) {
+			//If the Euclidean distance between the current convex set point and the next one is > than the width/10 of the enclosing rectangle?
+			if (Math.pow(hullPts[i].x - hullPts[i + 1].x, 2) + Math.pow(hullPts[i].y - hullPts[i + 1].y, 2) > enclosingRect.size.width / 3)
+            {
+				// Add the convex set point to new list 
+				filteredHull.add(hullPts[i]);
+            }
+		}
+		
+		// Obtains the convexity defects of the contour
+		//MatOfInt temp = new MatOfInt();
+		//temp.fromList(filteredHull);
+		Imgproc.convexityDefects(biggestContour, hull, defects);
+		defectsArray = defects.toArray();
+		
+		return true;
+	}
+
+	
+	/**
+	 * Detects and counts the number of fingers the user is holding up
+	 * 
+	 * @param origImg RGB-colored frame from camera feed
+	 */
+	private void detectAndCountFingers(Mat origImg) {
+		int fingerNum = 0;
+		Point[] contourPts = biggestContour.toArray();
+		
+		// For each convexity defect
+		for(int i = 0; i < defectsArray.length; i+=4) {
+			// Obtain the point where the defect begins
+			Point startPoint = contourPts[defectsArray[i]];
+			
+			//Point endPoint = contourPts[defectsArray[i+1]];
+			
+			// Obtain the point of the deepest part of the defect
+			Point depthPoint = contourPts[defectsArray[i+2]];
+			
+			// Counts the number of fingers in the image
+            // Author's note: Custom heuristic based on some experiment, double check it before use
+            if ((startPoint.y < enclosingRect.center.y || depthPoint.y < enclosingRect.center.y) && (startPoint.y < depthPoint.y) && (Math.sqrt(Math.pow(startPoint.x - depthPoint.x, 2) + Math.pow(startPoint.y - depthPoint.y, 2)) > enclosingRect.size.height / 6.5))
+            {
+            	// Increment finger count
+                fingerNum++;
+                
+                // Draws a line from the tip of the finger to the "valley" between the two fingers
+                Core.line(origImg, startPoint, depthPoint, new Scalar(0, 255, 0));
+            }
+
+            // Draws a red circle at the tip of the finger
+            Core.circle(origImg, startPoint, 5, new Scalar(255, 0, 0));
+            // Draws a yellow circle at the "valley" between the two fingers
+            Core.circle(origImg, depthPoint, 5, new Scalar(255, 255, 0));
+		}
+		
+		// Draws the finger count on the screen
+		Core.putText(origImg, new Integer(fingerNum).toString(), new Point(0, 0), Core.FONT_HERSHEY_DUPLEX, 5, new Scalar(255, 255, 255));
+	}
+}

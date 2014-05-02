@@ -1,0 +1,551 @@
+/**
+ * 
+ */
+package project.gui.tray;
+
+import gestures.HandRecognizer;
+
+import java.awt.AWTException;
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Dimension;
+import java.awt.Font;
+import java.awt.HeadlessException;
+import java.awt.Image;
+import java.awt.Insets;
+import java.awt.SystemTray;
+import java.awt.Toolkit;
+import java.awt.TrayIcon;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
+import java.awt.image.BufferedImage;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+
+import javax.swing.JCheckBoxMenuItem;
+import javax.swing.JFrame;
+import javax.swing.JMenuItem;
+import javax.swing.JPopupMenu;
+
+import org.opencv.core.Core;
+import org.opencv.core.Mat;
+import org.opencv.core.MatOfRect;
+import org.opencv.core.Point;
+import org.opencv.core.Rect;
+import org.opencv.imgproc.Imgproc;
+
+import project.MainEntry;
+import project.gui.common.ClassifierDetailsPanel;
+import project.gui.common.LogPanel;
+import project.gui.common.VideoCaptureMirrorPanel;
+import project.recognition.AbstractGesture;
+import project.recognition.GestureRecognizer;
+import project.recognition.types.HaarClassifierGesture;
+import project.util.HandGestureRobot;
+import project.util.logger.Log;
+
+
+/**
+ * 
+ * 
+ * @author Chris Hartley
+ * @author Adin Miller
+ */
+public class GestureTrayApp implements Runnable {
+
+
+	private static final String ACTION_CMD_EXIT = "app-popup-menu-exit";
+	
+	private static final String ACTION_CMD_ALLOW_MOUSE_OVERRIDE =
+			"app-popup-menu-allowMouseOverride";
+	
+	private static final String ACTION_CMD_VIDEO_CAPTURE_PREVIEW =
+			"app-popup-menu-vcPreview";
+	
+	private static final String ACTION_CMD_CLASSIFIERS_DETAILS =
+			"app-popup-menu-cdFrame";
+	
+	private static final String ACTION_CMD_VIDEO_CAPTURE_STATUS =
+			"app-popup-menu-vcStatus";
+	
+	private static final String ACTION_CMD_VIEW_LOGS =
+			"app-popup-menu-logFrame";
+	
+	private final String iconFolder = "gui/tray/icons/";
+	
+	
+	// Private final member data.
+	private final SystemTray tray = SystemTray.getSystemTray();
+	private final Toolkit toolkit = Toolkit.getDefaultToolkit();
+	private final TrayIcon trayIcon;
+	private final String title;
+	
+	// Private member data.
+	private GestureRecognizer gr = null;
+	private VideoCaptureMirrorPanel vcMirror;
+	private JFrame vcPreview = null;
+	private JFrame cdFrame = null;
+	private JFrame logFrame = null;
+	private List<BufferedImage> icons;
+	
+	
+	/**
+	 * Constructor for a new instance of this gesture tray application with the
+	 * specified program title.
+	 * 
+	 * @param title  the {@link String} title name of this application.
+	 * 
+	 * @throws UnsupportedOperationException
+	 * @throws HeadlessException
+	 * @throws SecurityException
+	 * @throws AWTException
+	 */
+	public GestureTrayApp(String title) throws UnsupportedOperationException,
+	                                           HeadlessException,
+	                                           SecurityException,
+	                                           AWTException
+	{
+		this.title = title;
+		
+		// Build the pop-up menu for the tray application...
+		final JPopupMenu jmenu = new GestureTrayPopupMenu();
+		
+		// Load the image icon for the tray icon...
+		loadIcons();
+		Image image = getTrayIcon();
+		
+		// Load this application as a tray icon into the system tray...
+		trayIcon = new TrayIcon(image, title, null);
+		trayIcon.addMouseListener( new MouseAdapter() {
+			
+			@Override
+			public void mouseClicked(MouseEvent me) {
+				if (me != null && me.getClickCount() > 1)
+					GestureTrayApp.this.showVideoCapturePreviewFrame();
+			}
+			
+			@Override
+			public void mouseReleased(MouseEvent me) {
+				if (me.isPopupTrigger()) {
+					jmenu.setLocation(me.getX(), me.getY());
+					jmenu.setInvoker(jmenu);
+					jmenu.setVisible(true);
+					jmenu.requestFocus(true);
+				}
+			}
+			
+		} );
+		tray.add(trayIcon);
+	}
+
+
+	@Override
+	public void run() {
+		trayIcon.displayMessage(title,
+				"Gesture Recognizer loaded and running...",
+                TrayIcon.MessageType.INFO);
+		
+		HandGestureRobot robot = new HandGestureRobot();
+		Log.debug("Loaded hand gesture robot: " + robot);
+		
+		gr = new GestureRecognizer();
+		vcMirror = new VideoCaptureMirrorPanel(gr.getVideoCaptureImageIcon());
+		
+		String clsRoot = "/classifiers/";// /Gesture Detection/classifiers
+		HaarClassifierGesture hc;
+		
+		/* For custom implementations of the AbstractGesture...
+		AbstractGesture gesture = new AbstractGesture(...) { ... };
+		
+		<gesture enabled="true">
+			<name>Test Gesture</name>
+			<description>This is an example testing the abstract gesture.</description>
+			<file>\gestures\TestGesture.class</file>
+		</gesture>
+		*/
+		AbstractGesture ag = new HandRecognizer("Hand Convexity/Contour Detection");/*AbstractGesture("Test Gesture", "This is an example testing the abstract gesture.", true) {
+			private static final long serialVersionUID = -6386399155674989745L;
+
+			@Override
+			public void detect(Mat matrix) {
+				Mat grayImg = new Mat();
+				MatOfRect objects = new MatOfRect();
+				Point pt1 = new Point(0, 0);
+				Point pt2 = new Point(0, 0);
+				Point center = new Point(0, 0);
+				
+				Imgproc.cvtColor(matrix, grayImg, Imgproc.COLOR_RGB2GRAY);
+				
+				Rect[] shapes = objects.toArray();
+				for (int i = 0; i < shapes.length; i++) {
+					pt1 = shapes[i].tl();
+					pt2 = shapes[i].br();
+
+					Core.rectangle(matrix, pt1, pt2, convertColorToScalar(Color.GREEN), 2);
+					
+					center.x = pt1.x + (pt2.x - pt1.x) / 2.0;
+					center.y = pt1.y + (pt2.y - pt1.y) / 2.0; 
+				
+					Core.circle(matrix, center, 5, convertColorToScalar(Color.YELLOW));
+					fireGestureDetected(0, (int)center.x, (int)center.y);
+				}
+			}
+			
+		};*/
+		gr.registerGesture(ag);
+		
+
+		/* For Haar-like cascade classifiers...
+		<gesture enabled="true">
+			<name>Fist 00</name>
+			<description>Fairly good fist detection.</description>
+			<file>\classifiers\fist_classifier.xml</file>
+			<color>Color.RED</color>
+		</gesture>
+		*/
+		hc = new HaarClassifierGesture("Fist 00", "Fairly good fist detection.", true);
+		hc.setClassifier(clsRoot + "fist_classifier.xml");
+		hc.setHighLightColor(Color.RED);
+		gr.registerGesture(hc);
+		
+		/*
+		<gesture enabled="false">
+			<name>Closed Palm 00</name>
+			<description>Picks up opened hand (figures)!</description>
+			<file>\classifiers\closed_palm_classifier.xml</file>
+			<color>Color.CYAN</color>
+		</gesture>
+		 */
+		hc = new HaarClassifierGesture("Closed Palm 00", "Picks up opened hand (figures)!", false);
+		hc.setClassifier(clsRoot + "closed_palm_classifier.xml");
+		hc.setHighLightColor(Color.CYAN);
+		gr.registerGesture(hc);
+		
+		/*
+		<gesture enabled="false">
+			<name>Fist 01</name>
+			<description>Random objects detected.</description>
+			<file>\classifiers\fist.xml</file>
+			<color>Color.YELLOW</color>
+		</gesture>
+		 */
+		hc = new HaarClassifierGesture("Fist 01", "Random objects detected.", false);
+		hc.setClassifier(clsRoot + "fist.xml");
+		hc.setHighLightColor(Color.YELLOW);
+		gr.registerGesture(hc);
+
+		/*
+		<gesture enabled="false">
+			<name>Hand 01</name>
+			<description>Finds lots of random objects!</description>
+			<file>\classifiers\hand_classifier_1.xml</file>
+			<color>Color.GREEN</color>
+		</gesture>
+		 */
+		hc = new HaarClassifierGesture("Hand 01", "Finds lots of random objects!", false);
+		hc.setClassifier(clsRoot + "hand_classifier_1.xml");
+		hc.setHighLightColor(Color.GREEN);
+		gr.registerGesture(hc);
+
+		/*
+		<gesture enabled="false">
+			<name>Hand 02</name>
+			<description>Finds random stuff, not hands!</description>
+			<file>\classifiers\hand_classifier_2.xml</file>
+			<color>Color.BLUE</color>
+		</gesture>
+		 */
+		hc = new HaarClassifierGesture("Hand 02", "Finds random stuff, not hands!", false);
+		hc.setClassifier(clsRoot + "hand_classifier_2.xml");
+		hc.setHighLightColor(Color.BLUE);
+		gr.registerGesture(hc);
+
+		/*
+		<gesture enabled="false">
+			<name>Palm 01</name>
+			<description>Identifies the palm of hands.</description>
+			<file>\classifiers\palm.xml</file>
+			<color>Color.ORANGE</color>
+		</gesture>
+		 */
+		hc = new HaarClassifierGesture("Palm 01", "Identifies the palm of hands.", false);
+		hc.setClassifier(clsRoot + "palm.xml");
+		hc.setHighLightColor(Color.ORANGE);
+		gr.registerGesture(hc);
+	}
+	
+	
+	/**
+	 * 
+	 */
+	public final void close() {
+		if (gr != null)
+			gr.stop();
+		
+		if (vcPreview != null) {
+			vcPreview.setVisible(false);
+			vcPreview.dispose();
+		}
+		
+		tray.remove(trayIcon);
+		System.exit(java.awt.Frame.NORMAL);
+	}
+	
+	
+	/**
+	 * 
+	 */
+	private final void loadIcons() {
+		icons = new LinkedList<BufferedImage>();
+		int[] sizes = { 16, 24, 36, 48 };
+		
+		for (int size : sizes) {
+			try {
+				String imgPath = iconFolder + "trayIcon_"
+						+ size + "x" + size + ".png";
+				icons.add( MainEntry.getImageFromPath(imgPath) );
+			} catch (Exception ignore) { }
+		}
+	}
+	
+	
+	/**
+	 * 
+	 * @return
+	 */
+	private final Image getTrayIcon() {
+		Dimension iconDim = tray.getTrayIconSize();
+		String imgPath = iconFolder + "trayIcon_16x16.png";
+		Image image = null;
+		
+		int base = Math.min(iconDim.height, iconDim.width);
+		if (base > 42)
+			imgPath.replace("16", "48");
+		else if (base > 31)
+			imgPath.replace("16", "36");
+		else if (base > 20)
+			imgPath.replace("16", "24");
+
+		try {
+			image = MainEntry.getImageFromPath(imgPath);
+		}
+		catch (IllegalArgumentException | IOException ex) {
+			Log.error("Unable to load tray icon!");
+			ex.printStackTrace();
+		}
+		return image;
+	}
+	
+	
+	/**
+	 * 
+	 */
+	private final synchronized void showVideoCapturePreviewFrame() {
+		if (vcPreview != null) {
+			vcPreview.setVisible(true);
+		}
+		else {
+			vcPreview = new JFrame(title + " - Preview");
+			vcPreview.setIconImages(icons);
+			vcPreview.getContentPane().add(vcMirror, BorderLayout.CENTER);
+			vcPreview.setAlwaysOnTop(true);
+			vcPreview.setVisible(true);
+			vcPreview.setDefaultCloseOperation(JFrame.HIDE_ON_CLOSE);
+			vcPreview.pack();
+			vcPreview.setVisible(true);
+		}
+	}
+	
+	
+	private final synchronized void showClassifierDetailsFrame() {
+		if (cdFrame != null) {
+			cdFrame.setVisible(true);
+		}
+		else {
+			cdFrame = new JFrame(title + " - Classifier(s)");
+			cdFrame.setIconImages(icons);
+			cdFrame.setContentPane( new ClassifierDetailsPanel(gr) );
+			cdFrame.setAlwaysOnTop(true);
+			cdFrame.setVisible(true);
+			cdFrame.setDefaultCloseOperation(JFrame.HIDE_ON_CLOSE);
+			cdFrame.pack();
+			cdFrame.setResizable(true);
+			cdFrame.setLocationRelativeTo(null);
+			cdFrame.setVisible(true);
+		}
+	}
+	
+	
+	private final synchronized void showVideoCaptureStatusFrame() {
+		//TODO: fill in code to show frame of video capture status...
+	}
+	
+	
+	private final synchronized void showLogFrame() {
+		if (logFrame != null) {
+			logFrame.setVisible(true);
+		}
+		else {
+			logFrame = new JFrame(title + " - Logs");
+			logFrame.setIconImages(icons);
+			logFrame.setContentPane( new LogPanel() );
+			logFrame.setAlwaysOnTop(true);
+			logFrame.setVisible(true);
+			logFrame.setDefaultCloseOperation(JFrame.HIDE_ON_CLOSE);
+			logFrame.pack();
+			logFrame.setResizable(true);
+			
+			Dimension screenDim = toolkit.getScreenSize();
+			Insets screenInsets = toolkit.getScreenInsets(
+					logFrame.getGraphicsConfiguration());
+			
+			logFrame.setLocation(
+					screenDim.width - screenInsets.right - logFrame.getWidth(), 
+					screenDim.height - screenInsets.bottom - logFrame.getHeight() );
+			logFrame.setVisible(true);
+		}
+		Log.debug("Showing log frame...");
+	}
+	
+
+	
+	/**
+	 * 
+	 * @author Chris
+	 */
+	private final class GestureTrayPopupMenu extends JPopupMenu
+			implements ActionListener, MouseListener
+	{
+
+		/**
+		 * 
+		 */
+		private static final long serialVersionUID = -9158476153662188001L;
+		
+		
+		/**
+		 * Maintains a hash of all menu items registered into this pop-up menu.
+		 */
+		public final HashMap<String,JMenuItem> menuItems =
+				new HashMap<String,JMenuItem>();
+		
+		
+		/**
+		 * Constructor for a new instance of the tray pop-up menu.
+		 */
+		public GestureTrayPopupMenu() {
+			super();
+			
+			buildPopupMenu();
+			
+			setFocusable(true);
+			addMouseListener(this);
+		}
+		
+		
+		/**
+		 * 
+		 * @param cmd
+		 * @param text
+		 * @return
+		 */
+		private final JMenuItem registerPopupMenuItem(String cmd, String text) {
+			return registerPopupMenuItem(cmd, new JMenuItem(text));
+		}
+		
+		
+		/**
+		 * 
+		 * @param cmd
+		 * @param item
+		 * @return
+		 */
+		private final <T extends JMenuItem> T registerPopupMenuItem(String cmd, T item) {
+			item.setActionCommand(cmd);
+			item.addActionListener(this);
+			menuItems.put(cmd, item);
+			return item;
+		}
+		
+		
+		/**
+		 * 
+		 */
+		private final void buildPopupMenu() {
+			add( registerPopupMenuItem(ACTION_CMD_VIDEO_CAPTURE_PREVIEW,
+					"Video Capture preview...") ).setFont(
+					getFont().deriveFont(Font.BOLD) );
+			
+			addSeparator();
+			
+			add( registerPopupMenuItem(ACTION_CMD_ALLOW_MOUSE_OVERRIDE,
+					new JCheckBoxMenuItem("Allow gestures to control mouse")) )
+					.setEnabled(false);
+			
+			addSeparator();
+			
+			add( registerPopupMenuItem(ACTION_CMD_VIEW_LOGS,
+					"Show/hide logs...") );
+			
+			add( registerPopupMenuItem(ACTION_CMD_CLASSIFIERS_DETAILS,
+					"View Classifiers...") );
+			
+			add( registerPopupMenuItem(ACTION_CMD_VIDEO_CAPTURE_STATUS,
+					"Video Capture status...") )
+					.setEnabled(false);
+			
+			addSeparator();
+			
+			add( registerPopupMenuItem(ACTION_CMD_EXIT, "Exit") );
+		}
+		
+		
+		@Override
+		public void actionPerformed(ActionEvent ae) {
+			String cmd = ae.getActionCommand();
+
+			if (ACTION_CMD_EXIT.equals(cmd))
+				close();
+			else if (ACTION_CMD_VIDEO_CAPTURE_PREVIEW.equals(cmd))
+				showVideoCapturePreviewFrame();
+			else if (ACTION_CMD_CLASSIFIERS_DETAILS.equals(cmd))
+				showClassifierDetailsFrame();
+			else if (ACTION_CMD_VIDEO_CAPTURE_STATUS.equals(cmd))
+				showVideoCaptureStatusFrame();
+			else if (ACTION_CMD_VIEW_LOGS.equals(cmd))
+				showLogFrame();
+			else
+				Log.warning("Unknown action preformed: " + ae);
+		}
+
+
+		@Override
+		public void mouseClicked(MouseEvent me) { }
+
+
+		@Override
+		public void mouseEntered(MouseEvent me) { }
+
+
+		@Override
+		public void mouseExited(MouseEvent me) {
+			if (!contains(me.getPoint()))
+				setVisible(false);
+		}
+
+
+		@Override
+		public void mousePressed(MouseEvent me) { }
+
+
+		@Override
+		public void mouseReleased(MouseEvent me) { }
+		
+	}
+	
+}

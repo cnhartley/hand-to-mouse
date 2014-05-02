@@ -1,0 +1,12 @@
+{
+  "C:\\Program Files\\Java\\jre7\\lib\\rt.jar": {
+    "coordinate": "jre:jre:zip:ovrm:1.0.0",
+    "location": "C:\\Program Files\\Java\\jre7\\lib\\rt.jar",
+    "status": "RESOLVED"
+  },
+  "C:\\Users\\Chris\\workspaces\\hand-2-mouse-workspace\\Gesture Detection": {
+    "location": "C:\\Users\\Chris\\workspaces\\hand-2-mouse-workspace\\Gesture Detection",
+    "status": "UNRESOLVED",
+    "error": "No class path info available for \u0027C:\\Users\\Chris\\workspaces\\hand-2-mouse-workspace\\Gesture Detection\u0027. Skipped."
+  }
+}

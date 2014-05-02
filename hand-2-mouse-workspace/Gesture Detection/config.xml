@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<configuration>
+	<files>
+		<opencv_lib>C:\OpenCV_2-4-8\opencv\build\java\x64\opencv_java248.dll</opencv_lib>
+	</files>
+	<gestures>
+		<!-- For custom implementations of the AbstractGesture...
+		AbstractGesture gesture = new AbstractGesture(...) { ... };
+		
+		<gesture enabled="true">
+			<name>Test Gesture</name>
+			<description>This is an example testing the abstract gesture.</description>
+			<file>\gestures\TestGesture.class</file>
+		</gesture>
+		-->
+		
+		<!-- For Haar-like cascade classifiers...
+		hc = new HaarClassifierGesture("Fist 00", "Fairly good fist detection.", true);
+		hc.setClassifier(clsRoot + "fist_classifier.xml");
+		hc.setHighLightColor(Color.RED);
+		
+		<gesture enabled="true">
+			<name>Fist 00</name>
+			<description>Fairly good fist detection.</description>
+			<file>\classifiers\fist_classifier.xml</file>
+			<color>Color.RED</color>
+		</gesture>
+		
+		hc = new HaarClassifierGesture("Closed Palm 00", "Picks up opened hand (figures)!", false);
+		hc.setClassifier(clsRoot + "closed_palm_classifier.xml");
+		hc.setHighLightColor(Color.CYAN);
+		
+		<gesture enabled="false">
+			<name>Closed Palm 00</name>
+			<description>Picks up opened hand (figures)!</description>
+			<file>\classifiers\closed_palm_classifier.xml</file>
+			<color>Color.CYAN</color>
+		</gesture>
+		
+		hc = new HaarClassifierGesture("Fist 01", "Random objects detected.", false);
+		hc.setClassifier(clsRoot + "fist.xml");
+		hc.setHighLightColor(Color.YELLOW);
+		
+		<gesture enabled="false">
+			<name>Fist 01</name>
+			<description>Random objects detected.</description>
+			<file>\classifiers\fist.xml</file>
+			<color>Color.YELLOW</color>
+		</gesture>
+
+		hc = new HaarClassifierGesture("Hand 01", "Finds lots of random objects!", false);
+		hc.setClassifier(clsRoot + "hand_classifier_1.xml");
+		hc.setHighLightColor(Color.GREEN);
+		
+		<gesture enabled="false">
+			<name>Hand 01</name>
+			<description>Finds lots of random objects!</description>
+			<file>\classifiers\hand_classifier_1.xml</file>
+			<color>Color.GREEN</color>
+		</gesture>
+
+		hc = new HaarClassifierGesture("Hand 02", "Finds random stuff, not hands!", false);
+		hc.setClassifier(clsRoot + "hand_classifier_2.xml");
+		hc.setHighLightColor(Color.BLUE);
+		
+		<gesture enabled="false">
+			<name>Hand 02</name>
+			<description>Finds random stuff, not hands!</description>
+			<file>\classifiers\hand_classifier_2.xml</file>
+			<color>Color.BLUE</color>
+		</gesture>
+
+		hc = new HaarClassifierGesture("Palm 01", "Identifies the palm of hands.", false);
+		hc.setClassifier(clsRoot + "palm.xml");
+		hc.setHighLightColor(Color.ORANGE);
+		
+		<gesture enabled="false">
+			<name>Palm 01</name>
+			<description>Identifies the palm of hands.</description>
+			<file>\classifiers\palm.xml</file>
+			<color>Color.ORANGE</color>
+		</gesture>
+		-->
+	</gestures>
+</configuration>

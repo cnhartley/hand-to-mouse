@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<qualifiedTypeNameHistroy>
+<fullyQualifiedTypeName name="java.beans.PropertyChangeListener"/>
+<fullyQualifiedTypeName name="java.util.LinkedList"/>
+<fullyQualifiedTypeName name="java.awt.Color"/>
+<fullyQualifiedTypeName name="project.gui.common.GestureDialog"/>
+<fullyQualifiedTypeName name="java.beans.PropertyChangeEvent"/>
+<fullyQualifiedTypeName name="project.recognition.GestureRecognizer"/>
+<fullyQualifiedTypeName name="project.recognition.event.GestureEvent"/>
+<fullyQualifiedTypeName name="project.recognition.AbstractGesture"/>
+</qualifiedTypeNameHistroy>
